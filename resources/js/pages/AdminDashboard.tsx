@@ -1,14 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { adminAPI } from '../services/api';
 import { Aspirasi, Balasan, Kategori, Statistik, StatusType } from '../types';
 import { kategoriAPI } from '../services/api';
 import { colors, fonts } from '../utils/designTokens';
 import FeedbackPanel from '../components/FeedbackPanel';
+import AdminUserManagement from '../components/AdminUserManagement';
 
-export default function AdminDashboard() {
+type AdminDashboardProps = {
+  initialSection?: 'summary' | 'queue' | 'all' | 'users';
+};
+
+export default function AdminDashboard({ initialSection = 'summary' }: AdminDashboardProps = {}) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { admin, isAuthenticated, logout, setAdmin } = useAuth();
 
   const [aspirasis, setAspirasis] = useState<Aspirasi[]>([]);
@@ -29,7 +35,32 @@ export default function AdminDashboard() {
   });
   const searchFilterTimer = useRef<number | null>(null);
   const latestLoadRequest = useRef(0);
-  const [activeAdminSection, setActiveAdminSection] = useState<'summary' | 'queue' | 'all'>('summary');
+  const [activeAdminSection, setActiveAdminSection] = useState<'summary' | 'queue' | 'all' | 'users'>(initialSection);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    if (tab === 'users' || location.pathname === '/admin/users') {
+      setActiveAdminSection('users');
+    } else if (tab === 'queue') {
+      setActiveAdminSection('queue');
+    } else if (tab === 'all') {
+      setActiveAdminSection('all');
+    } else if (location.pathname === '/admin/dashboard' && !tab) {
+      if (initialSection !== 'users') {
+        setActiveAdminSection('summary');
+      }
+    }
+  }, [location.search, location.pathname, initialSection]);
+
+  const handleSectionSwitch = (section: 'summary' | 'queue' | 'all' | 'users') => {
+    setActiveAdminSection(section);
+    if (section === 'users') {
+      navigate('/admin/dashboard?tab=users');
+    } else if (section === 'summary') {
+      navigate('/admin/dashboard');
+    }
+  };
   const [currentPage, setCurrentPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [totalAspirasi, setTotalAspirasi] = useState(0);
@@ -388,9 +419,18 @@ export default function AdminDashboard() {
         <aside className="admin-sidebar" aria-label="Navigasi panel admin">
           <div className="admin-sidebar-brand"><b>Aspirasi JTIK</b><small>Panel pengelolaan</small></div>
           <nav aria-label="Menu admin">
-            <button type="button" aria-current={activeAdminSection === 'summary' ? 'page' : undefined} onClick={() => setActiveAdminSection('summary')}>Dashboard</button>
+            <button type="button" aria-current={activeAdminSection === 'summary' ? 'page' : undefined} onClick={() => handleSectionSwitch('summary')}>Dashboard</button>
             <button type="button" aria-current={activeAdminSection === 'queue' ? 'page' : undefined} onClick={() => openAspirasiList('queue')}>Antrean moderasi <span className="admin-sidebar-count">{Number(statistik?.by_status.Diterima || 0) + Number(statistik?.by_status.Diproses || 0)}</span></button>
             <button type="button" aria-current={activeAdminSection === 'all' ? 'page' : undefined} onClick={() => openAspirasiList('all')}>Semua aspirasi</button>
+            {admin?.role === 'admin' && (
+              <button
+                type="button"
+                aria-current={activeAdminSection === 'users' ? 'page' : undefined}
+                onClick={() => handleSectionSwitch('users')}
+              >
+                Kelola pengurus
+              </button>
+            )}
             <Link to="/publik">Lihat halaman publik</Link>
           </nav>
           <div className="admin-sidebar-account">
@@ -422,7 +462,13 @@ export default function AdminDashboard() {
                 margin: 0,
                 color: colors.ink,
               }}>
-                {activeAdminSection === 'summary' ? 'Dashboard' : activeAdminSection === 'queue' ? 'Antrean moderasi' : 'Semua aspirasi'}
+                {activeAdminSection === 'summary'
+                  ? 'Dashboard'
+                  : activeAdminSection === 'queue'
+                  ? 'Antrean moderasi'
+                  : activeAdminSection === 'users'
+                  ? 'Kelola Pengurus & Akun'
+                  : 'Semua aspirasi'}
               </h3>
               <p style={{
                 margin: '3px 0 0',
@@ -430,7 +476,11 @@ export default function AdminDashboard() {
                 color: colors.ink3,
                 fontFamily: fonts.mono,
               }}>
-                {activeAdminSection === 'summary' ? 'Ringkasan aspirasi dan aktivitas moderasi' : `${displayedAspirasis.length} aspirasi ditampilkan`}
+                {activeAdminSection === 'summary'
+                  ? 'Ringkasan aspirasi dan aktivitas moderasi'
+                  : activeAdminSection === 'users'
+                  ? 'Manajemen hak akses administrator dan moderator portal aspirasi'
+                  : `${displayedAspirasis.length} aspirasi ditampilkan`}
               </p>
             </div>
             {activeAdminSection === 'summary' && (
@@ -462,13 +512,17 @@ export default function AdminDashboard() {
             </section>
           )}
 
-          {error && (
-            <FeedbackPanel variant="error" title="Data belum berhasil dimuat" message={error} actionLabel="Coba lagi" onAction={() => loadAppliedPage(currentPage)} actionDisabled={loading} />
+          {activeAdminSection !== 'users' && (
+            <>
+              {error && (
+                <FeedbackPanel variant="error" title="Data belum berhasil dimuat" message={error} actionLabel="Coba lagi" onAction={() => loadAppliedPage(currentPage)} actionDisabled={loading} />
+              )}
+              {loading && (
+                <FeedbackPanel variant="loading" title="Memuat data aspirasi…" />
+              )}
+              {detailLoading && <FeedbackPanel variant="loading" title="Memuat detail tiket…" />}
+            </>
           )}
-          {loading && (
-            <FeedbackPanel variant="loading" title="Memuat data aspirasi…" />
-          )}
-          {detailLoading && <FeedbackPanel variant="loading" title="Memuat detail tiket…" />}
 
           {/* Statistics */}
           {activeAdminSection === 'summary' && statistik && (
@@ -674,7 +728,24 @@ export default function AdminDashboard() {
             </section>
           )}
 
-          {activeAdminSection !== 'summary' && <>
+          {activeAdminSection === 'users' && (
+            admin?.role === 'admin' ? (
+              <AdminUserManagement
+                currentUser={admin}
+                onUserSelfUpdated={(updated) => setAdmin(updated)}
+              />
+            ) : (
+              <FeedbackPanel
+                variant="error"
+                title="Akses Dibatasi"
+                message="Halaman pengelolaan pengurus hanya dapat diakses oleh Administrator."
+                actionLabel="Kembali ke Dashboard"
+                onAction={() => handleSectionSwitch('summary')}
+              />
+            )
+          )}
+
+          {(activeAdminSection === 'queue' || activeAdminSection === 'all') && <>
           {/* Filters */}
           <div id="admin-filters" style={{
             background: colors.card,

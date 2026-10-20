@@ -88,6 +88,7 @@ function App() {
           <Route path="/publik" element={<PublicAsperasi />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/users" element={<AdminDashboard initialSection="users" />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>

@@ -53,6 +53,20 @@ export const adminAPI = {
     }),
   getStatistik: () => apiClient.get('/admin/statistik'),
   getProfile: () => apiClient.get('/admin/profile'),
+
+  // User Management
+  getUsers: (filters?: { search?: string; role?: string; is_active?: string }) =>
+    apiClient.get('/admin/users', { params: filters }),
+  getUserById: (id: number) => apiClient.get(`/admin/users/${id}`),
+  createUser: (data: { nama: string; email: string; password: string; role: 'admin' | 'moderator'; is_active?: boolean }) =>
+    apiClient.post('/admin/users', data),
+  updateUser: (id: number, data: { nama: string; email: string; role: 'admin' | 'moderator'; is_active: boolean }) =>
+    apiClient.put(`/admin/users/${id}`, data),
+  updateUserPassword: (id: number, password: string) =>
+    apiClient.patch(`/admin/users/${id}/password`, { password }),
+  toggleUserStatus: (id: number) =>
+    apiClient.patch(`/admin/users/${id}/toggle-status`),
+  deleteUser: (id: number) => apiClient.delete(`/admin/users/${id}`),
 };
 
 // Kategori API

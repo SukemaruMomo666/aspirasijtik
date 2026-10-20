@@ -21,9 +21,9 @@ class AdminSeeder extends Seeder
 
         $admins = [
             [
-                'nama' => 'Admin JTIK',
-                'email' => 'admin@jtik.polsub.ac.id',
-                'password' => Hash::make('admin123'),
+                'nama' => 'Ketua Jurusan JTIK',
+                'email' => 'kajur@jtik.polsub.ac.id',
+                'password' => Hash::make('kajur123'),
                 'is_active' => true,
                 'role' => 'admin',
             ],
@@ -41,12 +41,17 @@ class AdminSeeder extends Seeder
                 ['email' => $admin['email']],
                 $admin
             );
-            $record->update(['role' => $admin['role']]);
+            $record->update([
+                'nama' => $admin['nama'],
+                'password' => $admin['password'],
+                'role' => $admin['role'],
+                'is_active' => $admin['is_active'],
+            ]);
         }
 
         $this->command->info('✓ Admin users seeded successfully!');
         $this->command->info('  Test credentials:');
-        $this->command->info('  Email: admin@jtik.polsub.ac.id | Password: admin123');
-        $this->command->info('  Email: moderator@jtik.polsub.ac.id | Password: moderator123');
+        $this->command->info('  Email: kajur@jtik.polsub.ac.id | Password: kajur123 (Administrator)');
+        $this->command->info('  Email: moderator@jtik.polsub.ac.id | Password: moderator123 (Moderator)');
     }
 }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\AspirasiController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\KategoriController;
@@ -37,4 +38,13 @@ Route::middleware('auth:sanctum')->group(function () {
     // Admin statistics and profile
     Route::get('/admin/statistik', [AdminController::class, 'statistik']);
     Route::get('/admin/profile', [AdminController::class, 'profile']);
+
+    // Admin user / pengurus management (Khusus Administrator)
+    Route::get('/admin/users', [AdminUserController::class, 'index']);
+    Route::post('/admin/users', [AdminUserController::class, 'store']);
+    Route::get('/admin/users/{targetAdmin}', [AdminUserController::class, 'show']);
+    Route::put('/admin/users/{targetAdmin}', [AdminUserController::class, 'update']);
+    Route::patch('/admin/users/{targetAdmin}/password', [AdminUserController::class, 'updatePassword']);
+    Route::patch('/admin/users/{targetAdmin}/toggle-status', [AdminUserController::class, 'toggleStatus']);
+    Route::delete('/admin/users/{targetAdmin}', [AdminUserController::class, 'destroy']);
 });

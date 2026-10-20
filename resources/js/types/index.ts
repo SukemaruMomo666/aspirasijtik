@@ -69,6 +69,22 @@ export interface Admin {
   is_active: boolean;
   role: 'admin' | 'moderator';
   last_login: string | null;
+  created_at?: string;
+  updated_at?: string;
+  balasans_count?: number;
+}
+
+export interface UserManagementCounts {
+  total: number;
+  admin: number;
+  moderator: number;
+  active: number;
+  inactive: number;
+}
+
+export interface UserListResponse {
+  users: Admin[];
+  counts: UserManagementCounts;
 }
 
 export interface LoginResponse {
