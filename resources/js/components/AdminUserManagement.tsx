@@ -17,7 +17,6 @@ export default function AdminUserManagement({
   const [counts, setCounts] = useState<UserManagementCounts>({
     total: 0,
     admin: 0,
-    moderator: 0,
     active: 0,
     inactive: 0,
   });
@@ -26,7 +25,6 @@ export default function AdminUserManagement({
 
   // Filter state
   const [search, setSearch] = useState('');
-  const [filterRole, setFilterRole] = useState<'all' | 'admin' | 'moderator'>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const searchTimer = useRef<number | null>(null);
 
@@ -44,7 +42,6 @@ export default function AdminUserManagement({
   // Form states for Create
   const [createNama, setCreateNama] = useState('');
   const [createEmail, setCreateEmail] = useState('');
-  const [createRole, setCreateRole] = useState<'admin' | 'moderator'>('moderator');
   const [createPassword, setCreatePassword] = useState('');
   const [createPasswordConfirm, setCreatePasswordConfirm] = useState('');
   const [createIsActive, setCreateIsActive] = useState(true);
@@ -53,7 +50,6 @@ export default function AdminUserManagement({
   // Form states for Edit
   const [editNama, setEditNama] = useState('');
   const [editEmail, setEditEmail] = useState('');
-  const [editRole, setEditRole] = useState<'admin' | 'moderator'>('moderator');
   const [editIsActive, setEditIsActive] = useState(true);
 
   // Form states for Password Reset
@@ -63,15 +59,13 @@ export default function AdminUserManagement({
 
   const fetchUsers = useCallback(async (
     searchQuery = search,
-    role = filterRole,
     status = filterStatus
   ) => {
     try {
       setLoading(true);
       setError(null);
-      const params: { search?: string; role?: string; is_active?: string } = {};
+      const params: { search?: string; is_active?: string } = {};
       if (searchQuery.trim()) params.search = searchQuery.trim();
-      if (role !== 'all') params.role = role;
       if (status === 'active') params.is_active = 'true';
       if (status === 'inactive') params.is_active = 'false';
 
@@ -86,7 +80,7 @@ export default function AdminUserManagement({
     } finally {
       setLoading(false);
     }
-  }, [search, filterRole, filterStatus]);
+  }, [search, filterStatus]);
 
   useEffect(() => {
     fetchUsers();
@@ -96,25 +90,19 @@ export default function AdminUserManagement({
     setSearch(val);
     if (searchTimer.current) window.clearTimeout(searchTimer.current);
     searchTimer.current = window.setTimeout(() => {
-      fetchUsers(val, filterRole, filterStatus);
+      fetchUsers(val, filterStatus);
     }, 350);
-  };
-
-  const handleRoleFilterChange = (val: 'all' | 'admin' | 'moderator') => {
-    setFilterRole(val);
-    fetchUsers(search, val, filterStatus);
   };
 
   const handleStatusFilterChange = (val: 'all' | 'active' | 'inactive') => {
     setFilterStatus(val);
-    fetchUsers(search, filterRole, val);
+    fetchUsers(search, val);
   };
 
   const resetFilters = () => {
     setSearch('');
-    setFilterRole('all');
     setFilterStatus('all');
-    fetchUsers('', 'all', 'all');
+    fetchUsers('', 'all');
   };
 
   // Auto-dismiss notice after 5 seconds
@@ -142,7 +130,6 @@ export default function AdminUserManagement({
   const openCreateModal = () => {
     setCreateNama('');
     setCreateEmail('');
-    setCreateRole('moderator');
     setCreatePassword('');
     setCreatePasswordConfirm('');
     setCreateIsActive(true);
@@ -179,7 +166,6 @@ export default function AdminUserManagement({
         nama: createNama.trim(),
         email: createEmail.trim(),
         password: createPassword,
-        role: createRole,
         is_active: createIsActive,
       });
 
@@ -199,7 +185,6 @@ export default function AdminUserManagement({
     setEditingUser(user);
     setEditNama(user.nama);
     setEditEmail(user.email);
-    setEditRole(user.role);
     setEditIsActive(user.is_active);
     setActionError(null);
   };
@@ -224,7 +209,6 @@ export default function AdminUserManagement({
       const res = await adminAPI.updateUser(editingUser.id, {
         nama: editNama.trim(),
         email: editEmail.trim(),
-        role: editRole,
         is_active: editIsActive,
       });
 
@@ -360,10 +344,10 @@ export default function AdminUserManagement({
         </div>
       )}
 
-      {/* Summary Stat Cards */}
+      {/* Summary Stat Cards (3 Cards) */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
         gap: '12px',
       }}>
         {/* Total Pengurus */}
@@ -371,7 +355,7 @@ export default function AdminUserManagement({
           background: colors.card,
           border: `1px solid ${colors.rule}`,
           borderRadius: '10px',
-          padding: '14px 16px',
+          padding: '16px 18px',
           boxShadow: '0 1px 3px rgba(12,35,58,0.04)',
         }}>
           <p style={{
@@ -383,11 +367,11 @@ export default function AdminUserManagement({
             color: colors.ink3,
             fontWeight: 600,
           }}>
-            Total Pengurus
+            Total Pengurus (Admin / Pimpinan / Staf)
           </p>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '6px' }}>
             <span style={{
-              fontSize: '26px',
+              fontSize: '28px',
               fontWeight: 700,
               fontFamily: fonts.display,
               color: colors.seal,
@@ -395,16 +379,16 @@ export default function AdminUserManagement({
             }}>
               {counts.total}
             </span>
-            <span style={{ fontSize: '11px', color: colors.ink3 }}>orang</span>
+            <span style={{ fontSize: '12px', color: colors.ink3 }}>akun terdaftar</span>
           </div>
         </div>
 
-        {/* Administrator */}
+        {/* Pengurus Aktif */}
         <div style={{
           background: colors.card,
           border: `1px solid ${colors.rule}`,
           borderRadius: '10px',
-          padding: '14px 16px',
+          padding: '16px 18px',
           boxShadow: '0 1px 3px rgba(12,35,58,0.04)',
         }}>
           <p style={{
@@ -416,28 +400,28 @@ export default function AdminUserManagement({
             color: colors.ink3,
             fontWeight: 600,
           }}>
-            Administrator (Akses Penuh)
+            Pengurus Aktif
           </p>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '6px' }}>
             <span style={{
-              fontSize: '26px',
+              fontSize: '28px',
               fontWeight: 700,
               fontFamily: fonts.display,
-              color: '#A9761B',
+              color: colors.status.selesai,
               lineHeight: 1,
             }}>
-              {counts.admin}
+              {counts.active}
             </span>
-            <span style={{ fontSize: '11px', color: colors.ink3 }}>admin aktif</span>
+            <span style={{ fontSize: '12px', color: colors.ink3 }}>dapat login & mengelola</span>
           </div>
         </div>
 
-        {/* Moderator */}
+        {/* Pengurus Nonaktif */}
         <div style={{
           background: colors.card,
           border: `1px solid ${colors.rule}`,
           borderRadius: '10px',
-          padding: '14px 16px',
+          padding: '16px 18px',
           boxShadow: '0 1px 3px rgba(12,35,58,0.04)',
         }}>
           <p style={{
@@ -449,68 +433,19 @@ export default function AdminUserManagement({
             color: colors.ink3,
             fontWeight: 600,
           }}>
-            Moderator (Peninjau)
+            Akun Nonaktif / Dinonaktifkan
           </p>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '6px' }}>
             <span style={{
-              fontSize: '26px',
+              fontSize: '28px',
               fontWeight: 700,
               fontFamily: fonts.display,
-              color: colors.status.diterima,
+              color: counts.inactive > 0 ? colors.status.ditolak : colors.ink3,
               lineHeight: 1,
             }}>
-              {counts.moderator}
+              {counts.inactive}
             </span>
-            <span style={{ fontSize: '11px', color: colors.ink3 }}>staf moderasi</span>
-          </div>
-        </div>
-
-        {/* Aktif vs Nonaktif */}
-        <div style={{
-          background: colors.card,
-          border: `1px solid ${colors.rule}`,
-          borderRadius: '10px',
-          padding: '14px 16px',
-          boxShadow: '0 1px 3px rgba(12,35,58,0.04)',
-        }}>
-          <p style={{
-            margin: 0,
-            fontSize: '11px',
-            textTransform: 'uppercase',
-            letterSpacing: '.05em',
-            fontFamily: fonts.mono,
-            color: colors.ink3,
-            fontWeight: 600,
-          }}>
-            Status Keaktifan
-          </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '6px' }}>
-            <div>
-              <span style={{
-                fontSize: '24px',
-                fontWeight: 700,
-                fontFamily: fonts.display,
-                color: colors.status.selesai,
-                lineHeight: 1,
-              }}>
-                {counts.active}
-              </span>
-              <span style={{ fontSize: '11px', color: colors.ink3, marginLeft: '4px' }}>aktif</span>
-            </div>
-            {counts.inactive > 0 && (
-              <div>
-                <span style={{
-                  fontSize: '24px',
-                  fontWeight: 700,
-                  fontFamily: fonts.display,
-                  color: colors.status.ditolak,
-                  lineHeight: 1,
-                }}>
-                  {counts.inactive}
-                </span>
-                <span style={{ fontSize: '11px', color: colors.ink3, marginLeft: '4px' }}>nonaktif</span>
-              </div>
-            )}
+            <span style={{ fontSize: '12px', color: colors.ink3 }}>akses ditangguhkan</span>
           </div>
         </div>
       </div>
@@ -534,7 +469,7 @@ export default function AdminUserManagement({
           gap: '12px',
           background: '#FCFDFE',
         }}>
-          {/* Search & Filters */}
+          {/* Search & Status Filter */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -544,7 +479,7 @@ export default function AdminUserManagement({
             minWidth: '280px',
           }}>
             {/* Search Input */}
-            <div style={{ position: 'relative', minWidth: '220px', flex: '1 1 240px' }}>
+            <div style={{ position: 'relative', minWidth: '220px', flex: '1 1 260px' }}>
               <input
                 type="text"
                 value={search}
@@ -593,26 +528,6 @@ export default function AdminUserManagement({
               )}
             </div>
 
-            {/* Role Filter */}
-            <select
-              value={filterRole}
-              onChange={(e) => handleRoleFilterChange(e.target.value as any)}
-              style={{
-                padding: '9px 28px 9px 12px',
-                fontSize: '12px',
-                borderRadius: '8px',
-                border: '1px solid #C3CFDC',
-                background: colors.card,
-                color: colors.ink,
-                fontFamily: fonts.sans,
-                cursor: 'pointer',
-              }}
-            >
-              <option value="all">Semua Peran</option>
-              <option value="admin">Administrator</option>
-              <option value="moderator">Moderator</option>
-            </select>
-
             {/* Status Filter */}
             <select
               value={filterStatus}
@@ -633,7 +548,7 @@ export default function AdminUserManagement({
               <option value="inactive">Nonaktif Saja</option>
             </select>
 
-            {(search || filterRole !== 'all' || filterStatus !== 'all') && (
+            {(search || filterStatus !== 'all') && (
               <button
                 type="button"
                 onClick={resetFilters}
@@ -715,11 +630,11 @@ export default function AdminUserManagement({
               Tidak ada pengurus ditemukan
             </h4>
             <p style={{ margin: '0 0 16px', color: colors.ink3, fontSize: '12px' }}>
-              {search || filterRole !== 'all' || filterStatus !== 'all'
+              {search || filterStatus !== 'all'
                 ? 'Tidak ada data pengurus yang cocok dengan kriteria filter Anda.'
                 : 'Belum ada akun pengurus yang terdaftar.'}
             </p>
-            {(search || filterRole !== 'all' || filterStatus !== 'all') && (
+            {(search || filterStatus !== 'all') && (
               <button
                 type="button"
                 onClick={resetFilters}
@@ -759,7 +674,7 @@ export default function AdminUserManagement({
                   letterSpacing: '.06em',
                 }}>
                   <th style={{ padding: '12px 18px' }}>Pengurus</th>
-                  <th style={{ padding: '12px 14px' }}>Peran (Role)</th>
+                  <th style={{ padding: '12px 14px' }}>Peran Hak Akses</th>
                   <th style={{ padding: '12px 14px' }}>Status</th>
                   <th style={{ padding: '12px 14px' }}>Terakhir Aktif</th>
                   <th style={{ padding: '12px 14px' }}>Kontribusi</th>
@@ -769,7 +684,6 @@ export default function AdminUserManagement({
               <tbody>
                 {users.map((user) => {
                   const isSelf = currentUser && currentUser.id === user.id;
-                  const isAdmin = user.role === 'admin';
 
                   return (
                     <tr
@@ -790,15 +704,13 @@ export default function AdminUserManagement({
                             borderRadius: '10px',
                             display: 'grid',
                             placeItems: 'center',
-                            background: isAdmin
-                              ? 'linear-gradient(135deg, #0F3260, #1A4B87)'
-                              : 'linear-gradient(135deg, #E2EDF8, #D0E2F3)',
-                            color: isAdmin ? '#F5C953' : '#174A7E',
+                            background: 'linear-gradient(135deg, #0F3260, #1A4B87)',
+                            color: '#F5C953',
                             fontWeight: 700,
                             fontSize: '13px',
                             fontFamily: fonts.display,
                             flexShrink: 0,
-                            boxShadow: isAdmin ? '0 2px 5px rgba(15,50,96,.2)' : 'none',
+                            boxShadow: '0 2px 5px rgba(15,50,96,.2)',
                           }}>
                             {getInitials(user.nama)}
                           </div>
@@ -833,7 +745,7 @@ export default function AdminUserManagement({
                         </div>
                       </td>
 
-                      {/* Role Badge */}
+                      {/* Unified Role Badge */}
                       <td style={{ padding: '14px 14px' }}>
                         <span style={{
                           display: 'inline-flex',
@@ -844,12 +756,12 @@ export default function AdminUserManagement({
                           fontSize: '11.5px',
                           fontWeight: 600,
                           fontFamily: fonts.display,
-                          background: isAdmin ? 'rgba(169, 118, 27, 0.12)' : 'rgba(27, 91, 158, 0.09)',
-                          color: isAdmin ? '#8C6010' : '#1B5B9E',
-                          border: `1px solid ${isAdmin ? 'rgba(169, 118, 27, 0.25)' : 'rgba(27, 91, 158, 0.2)'}`,
+                          background: 'rgba(15, 50, 96, 0.09)',
+                          color: colors.seal,
+                          border: '1px solid rgba(15, 50, 96, 0.2)',
                         }}>
-                          <span style={{ fontSize: '12px' }}>{isAdmin ? '★' : '🛡'}</span>
-                          {isAdmin ? 'Administrator' : 'Moderator'}
+                          <span style={{ fontSize: '12px' }}>★</span>
+                          Administrator
                         </span>
                       </td>
 
@@ -1033,7 +945,7 @@ export default function AdminUserManagement({
             onClick={(e) => e.stopPropagation()}
             style={{
               width: '100%',
-              maxWidth: '520px',
+              maxWidth: '480px',
               maxHeight: '90vh',
               overflowY: 'auto',
               background: colors.card,
@@ -1063,7 +975,7 @@ export default function AdminUserManagement({
                   fontSize: '19px',
                   fontWeight: 700,
                 }}>
-                  Tambah Pengurus Baru
+                  Tambah Pengurus / Admin Baru
                 </h3>
               </div>
               <button
@@ -1108,7 +1020,7 @@ export default function AdminUserManagement({
                   required
                   value={createNama}
                   onChange={(e) => setCreateNama(e.target.value)}
-                  placeholder="Contoh: Budi Prasetyo, S.Kom."
+                  placeholder="Contoh: Budi Prasetyo, S.Kom., M.T."
                   style={{
                     width: '100%',
                     padding: '10px 12px',
@@ -1144,62 +1056,6 @@ export default function AdminUserManagement({
                     outline: 'none',
                   }}
                 />
-              </div>
-
-              {/* Role Selection */}
-              <div>
-                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: colors.ink, marginBottom: '6px' }}>
-                  Peran & Hak Akses *
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  {/* Moderator Card */}
-                  <label style={{
-                    display: 'block',
-                    padding: '12px',
-                    borderRadius: '9px',
-                    border: `1.5px solid ${createRole === 'moderator' ? colors.seal : '#DCE5ED'}`,
-                    background: createRole === 'moderator' ? '#F2F7FC' : colors.card,
-                    cursor: 'pointer',
-                    transition: 'all .12s',
-                  }}>
-                    <input
-                      type="radio"
-                      name="create_role"
-                      value="moderator"
-                      checked={createRole === 'moderator'}
-                      onChange={() => setCreateRole('moderator')}
-                      style={{ marginRight: '6px' }}
-                    />
-                    <b style={{ color: colors.ink, fontSize: '13px' }}>Moderator</b>
-                    <p style={{ margin: '4px 0 0', fontSize: '11px', color: colors.ink3, lineHeight: 1.4 }}>
-                      Meninjau aspirasi masuk, mengubah status, dan membalas tiket.
-                    </p>
-                  </label>
-
-                  {/* Admin Card */}
-                  <label style={{
-                    display: 'block',
-                    padding: '12px',
-                    borderRadius: '9px',
-                    border: `1.5px solid ${createRole === 'admin' ? '#A9761B' : '#DCE5ED'}`,
-                    background: createRole === 'admin' ? '#FDF8EE' : colors.card,
-                    cursor: 'pointer',
-                    transition: 'all .12s',
-                  }}>
-                    <input
-                      type="radio"
-                      name="create_role"
-                      value="admin"
-                      checked={createRole === 'admin'}
-                      onChange={() => setCreateRole('admin')}
-                      style={{ marginRight: '6px' }}
-                    />
-                    <b style={{ color: '#8C6010', fontSize: '13px' }}>Administrator</b>
-                    <p style={{ margin: '4px 0 0', fontSize: '11px', color: colors.ink3, lineHeight: 1.4 }}>
-                      Akses penuh: kelola pengurus, ekspor data, visibilitas publik & privat.
-                    </p>
-                  </label>
-                </div>
               </div>
 
               {/* Password */}
@@ -1266,7 +1122,7 @@ export default function AdminUserManagement({
                   checked={createIsActive}
                   onChange={(e) => setCreateIsActive(e.target.checked)}
                 />
-                <span>Akun langsung aktif dan dapat digunakan untuk login</span>
+                <span>Akun langsung aktif dan memiliki akses penuh pengelolaan</span>
               </label>
 
               {/* Actions Buttons */}
@@ -1336,7 +1192,7 @@ export default function AdminUserManagement({
             onClick={(e) => e.stopPropagation()}
             style={{
               width: '100%',
-              maxWidth: '500px',
+              maxWidth: '460px',
               maxHeight: '90vh',
               overflowY: 'auto',
               background: colors.card,
@@ -1432,34 +1288,6 @@ export default function AdminUserManagement({
                     color: colors.ink,
                   }}
                 />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: colors.ink, marginBottom: '6px' }}>
-                  Peran (Role) *
-                </label>
-                <select
-                  value={editRole}
-                  onChange={(e) => setEditRole(e.target.value as any)}
-                  disabled={Boolean(currentUser && currentUser.id === editingUser.id)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    fontSize: '13px',
-                    borderRadius: '8px',
-                    border: '1px solid #C3CFDC',
-                    background: colors.card,
-                    color: colors.ink,
-                  }}
-                >
-                  <option value="moderator">Moderator (Peninjau tiket aspirasi)</option>
-                  <option value="admin">Administrator (Akses penuh pengelolaan)</option>
-                </select>
-                {currentUser && currentUser.id === editingUser.id && (
-                  <p style={{ margin: '4px 0 0', fontSize: '11px', color: colors.ink3 }}>
-                    Peran akun Anda sendiri tidak dapat diturunkan demi keamanan.
-                  </p>
-                )}
               </div>
 
               <div>
