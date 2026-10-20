@@ -67,7 +67,7 @@ export interface Admin {
   nama: string;
   email: string;
   is_active: boolean;
-  role: 'admin' | 'moderator';
+  role: 'admin';
   last_login: string | null;
   created_at?: string;
   updated_at?: string;
@@ -77,7 +77,6 @@ export interface Admin {
 export interface UserManagementCounts {
   total: number;
   admin: number;
-  moderator: number;
   active: number;
   inactive: number;
 }

@@ -11,19 +11,19 @@ use Illuminate\Validation\Rule;
 class AdminUserController extends Controller
 {
     /**
-     * Pastikan hanya Administrator yang memiliki izin mengelola akun pengurus.
+     * Pastikan pengguna terautentikasi adalah Pengurus/Admin JTIK.
      */
     private function authorizeAdmin(Request $request): void
     {
         abort_unless(
             $request->user()?->role === 'admin',
             403,
-            'Akses ditolak. Hanya Administrator yang memiliki hak akses untuk mengelola data pengurus.'
+            'Akses ditolak. Anda tidak memiliki izin untuk mengelola akun pengurus.'
         );
     }
 
     /**
-     * Dapatkan daftar seluruh pengurus/admin dengan filter dan ringkasan status.
+     * Dapatkan daftar seluruh pengurus/admin dengan filter pencarian dan status.
      */
     public function index(Request $request): JsonResponse
     {
@@ -40,11 +40,6 @@ class AdminUserController extends Controller
             });
         }
 
-        // Filter role (admin/moderator)
-        if ($request->filled('role') && in_array($request->input('role'), ['admin', 'moderator'], true)) {
-            $query->where('role', $request->input('role'));
-        }
-
         // Filter status aktif (true/false)
         if ($request->has('is_active') && $request->input('is_active') !== '' && $request->input('is_active') !== null) {
             $isActive = filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
@@ -53,17 +48,13 @@ class AdminUserController extends Controller
             }
         }
 
-        // Urutkan: Administrator dahulu, lalu berdasarkan nama
-        $users = $query->orderByRaw("CASE WHEN role = 'admin' THEN 0 ELSE 1 END")
-            ->orderBy('nama', 'asc')
-            ->get();
+        $users = $query->orderBy('nama', 'asc')->get();
 
-        // Agregasi statistik pengurus
+        // Agregasi statistik pengurus (1 Role: Administrator)
         $allAdmins = Admin::all();
         $counts = [
             'total' => $allAdmins->count(),
-            'admin' => $allAdmins->where('role', 'admin')->count(),
-            'moderator' => $allAdmins->where('role', 'moderator')->count(),
+            'admin' => $allAdmins->count(),
             'active' => $allAdmins->where('is_active', true)->count(),
             'inactive' => $allAdmins->where('is_active', false)->count(),
         ];
@@ -75,7 +66,7 @@ class AdminUserController extends Controller
     }
 
     /**
-     * Tambah akun pengurus baru.
+     * Tambah akun pengurus/admin baru.
      */
     public function store(Request $request): JsonResponse
     {
@@ -85,7 +76,6 @@ class AdminUserController extends Controller
             'nama' => 'required|string|max:100',
             'email' => 'required|email|max:150|unique:admins,email',
             'password' => 'required|string|min:8|max:100',
-            'role' => 'required|in:admin,moderator',
             'is_active' => 'sometimes|boolean',
         ], [
             'nama.required' => 'Nama lengkap wajib diisi.',
@@ -94,15 +84,13 @@ class AdminUserController extends Controller
             'email.unique' => 'Email ini sudah terdaftar sebagai pengurus.',
             'password.required' => 'Password wajib diisi.',
             'password.min' => 'Password minimal terdiri dari 8 karakter.',
-            'role.required' => 'Peran (role) akun wajib dipilih.',
-            'role.in' => 'Peran akun tidak valid.',
         ]);
 
         $admin = Admin::create([
             'nama' => trim($validated['nama']),
             'email' => strtolower(trim($validated['email'])),
             'password' => Hash::make($validated['password']),
-            'role' => $validated['role'],
+            'role' => 'admin',
             'is_active' => $validated['is_active'] ?? true,
         ]);
 
@@ -138,26 +126,16 @@ class AdminUserController extends Controller
         $validated = $request->validate([
             'nama' => 'required|string|max:100',
             'email' => ['required', 'email', 'max:150', Rule::unique('admins', 'email')->ignore($targetAdmin->id)],
-            'role' => 'required|in:admin,moderator',
             'is_active' => 'required|boolean',
         ], [
             'nama.required' => 'Nama lengkap wajib diisi.',
             'email.required' => 'Alamat email wajib diisi.',
             'email.email' => 'Format email tidak valid.',
             'email.unique' => 'Email ini sudah digunakan oleh akun lain.',
-            'role.required' => 'Peran (role) akun wajib dipilih.',
-            'role.in' => 'Peran akun tidak valid.',
             'is_active.required' => 'Status keaktifan akun wajib ditentukan.',
         ]);
 
         $isSelf = (int) $request->user()->id === (int) $targetAdmin->id;
-
-        // Proteksi: tidak boleh mengubah peran akun sendiri menjadi moderator
-        if ($isSelf && $validated['role'] !== 'admin') {
-            return response()->json([
-                'message' => 'Anda tidak dapat menurunkan peran (demote) akun Anda sendiri demi keamanan.',
-            ], 422);
-        }
 
         // Proteksi: tidak boleh menonaktifkan akun sendiri
         if ($isSelf && ! $validated['is_active']) {
@@ -166,16 +144,15 @@ class AdminUserController extends Controller
             ], 422);
         }
 
-        // Proteksi: harus ada minimal 1 Administrator aktif di sistem
-        if ($targetAdmin->role === 'admin' && ($validated['role'] !== 'admin' || ! $validated['is_active'])) {
-            $otherActiveAdmins = Admin::where('role', 'admin')
-                ->where('is_active', true)
+        // Proteksi: harus ada minimal 1 Pengurus/Admin aktif di sistem
+        if (! $validated['is_active']) {
+            $otherActiveAdmins = Admin::where('is_active', true)
                 ->where('id', '!=', $targetAdmin->id)
                 ->count();
 
             if ($otherActiveAdmins < 1) {
                 return response()->json([
-                    'message' => 'Operasi ditolak. Sistem wajib memiliki minimal satu akun Administrator yang aktif.',
+                    'message' => 'Operasi ditolak. Sistem wajib memiliki minimal satu akun Pengurus yang aktif.',
                 ], 422);
             }
         }
@@ -183,7 +160,7 @@ class AdminUserController extends Controller
         $targetAdmin->update([
             'nama' => trim($validated['nama']),
             'email' => strtolower(trim($validated['email'])),
-            'role' => $validated['role'],
+            'role' => 'admin',
             'is_active' => (bool) $validated['is_active'],
         ]);
 
@@ -244,16 +221,15 @@ class AdminUserController extends Controller
 
         $newStatus = ! $targetAdmin->is_active;
 
-        // Jika akan dinonaktifkan dan berstatus admin, pastikan ada admin aktif lain
-        if (! $newStatus && $targetAdmin->role === 'admin') {
-            $otherActiveAdmins = Admin::where('role', 'admin')
-                ->where('is_active', true)
+        // Jika akan dinonaktifkan, pastikan ada admin aktif lain
+        if (! $newStatus) {
+            $otherActiveAdmins = Admin::where('is_active', true)
                 ->where('id', '!=', $targetAdmin->id)
                 ->count();
 
             if ($otherActiveAdmins < 1) {
                 return response()->json([
-                    'message' => 'Operasi ditolak. Sistem wajib memiliki minimal satu Administrator aktif.',
+                    'message' => 'Operasi ditolak. Sistem wajib memiliki minimal satu Pengurus yang aktif.',
                 ], 422);
             }
         }
@@ -287,17 +263,14 @@ class AdminUserController extends Controller
         }
 
         // Proteksi: tidak boleh menghapus admin aktif terakhir
-        if ($targetAdmin->role === 'admin') {
-            $otherActiveAdmins = Admin::where('role', 'admin')
-                ->where('is_active', true)
-                ->where('id', '!=', $targetAdmin->id)
-                ->count();
+        $otherActiveAdmins = Admin::where('is_active', true)
+            ->where('id', '!=', $targetAdmin->id)
+            ->count();
 
-            if ($otherActiveAdmins < 1) {
-                return response()->json([
-                    'message' => 'Operasi ditolak. Tidak dapat menghapus satu-satunya Administrator aktif yang tersisa.',
-                ], 422);
-            }
+        if ($otherActiveAdmins < 1) {
+            return response()->json([
+                'message' => 'Operasi ditolak. Tidak dapat menghapus satu-satunya Pengurus aktif yang tersisa.',
+            ], 422);
         }
 
         // Proteksi integritas data: jika sudah pernah membalas aspirasi

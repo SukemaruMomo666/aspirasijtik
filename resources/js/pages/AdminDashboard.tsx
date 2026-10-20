@@ -422,20 +422,18 @@ export default function AdminDashboard({ initialSection = 'summary' }: AdminDash
             <button type="button" aria-current={activeAdminSection === 'summary' ? 'page' : undefined} onClick={() => handleSectionSwitch('summary')}>Dashboard</button>
             <button type="button" aria-current={activeAdminSection === 'queue' ? 'page' : undefined} onClick={() => openAspirasiList('queue')}>Antrean moderasi <span className="admin-sidebar-count">{Number(statistik?.by_status.Diterima || 0) + Number(statistik?.by_status.Diproses || 0)}</span></button>
             <button type="button" aria-current={activeAdminSection === 'all' ? 'page' : undefined} onClick={() => openAspirasiList('all')}>Semua aspirasi</button>
-            {admin?.role === 'admin' && (
-              <button
-                type="button"
-                aria-current={activeAdminSection === 'users' ? 'page' : undefined}
-                onClick={() => handleSectionSwitch('users')}
-              >
-                Kelola pengurus
-              </button>
-            )}
+            <button
+              type="button"
+              aria-current={activeAdminSection === 'users' ? 'page' : undefined}
+              onClick={() => handleSectionSwitch('users')}
+            >
+              Kelola pengurus
+            </button>
             <Link to="/publik">Lihat halaman publik</Link>
           </nav>
           <div className="admin-sidebar-account">
             <b>{admin?.nama || 'Pengurus'}</b>
-            <span>{admin?.role === 'admin' ? 'Administrator' : 'Moderator'}</span>
+            <span>Administrator</span>
             <button type="button" onClick={handleLogout}>Keluar</button>
           </div>
         </aside>
@@ -479,7 +477,7 @@ export default function AdminDashboard({ initialSection = 'summary' }: AdminDash
                 {activeAdminSection === 'summary'
                   ? 'Ringkasan aspirasi dan aktivitas moderasi'
                   : activeAdminSection === 'users'
-                  ? 'Manajemen hak akses administrator dan moderator portal aspirasi'
+                  ? 'Manajemen akun pengurus dan pimpinan jurusan'
                   : `${displayedAspirasis.length} aspirasi ditampilkan`}
               </p>
             </div>
@@ -491,22 +489,18 @@ export default function AdminDashboard({ initialSection = 'summary' }: AdminDash
           </div>
 
           {activeAdminSection === 'summary' && (
-            <section className={`admin-work-guide${admin?.role === 'admin' ? ' is-admin' : ' is-moderator'}`} aria-labelledby="admin-work-guide-title">
+            <section className="admin-work-guide is-admin" aria-labelledby="admin-work-guide-title">
               <div className="admin-work-guide-heading">
                 <span className="admin-work-guide-icon" aria-hidden="true">i</span>
                 <div>
-                  <p>{admin?.role === 'admin' ? 'PANDUAN ADMIN' : 'PANDUAN MODERATOR'}</p>
-                  <h4 id="admin-work-guide-title">{admin?.role === 'admin' ? 'Kelola aspirasi dengan aman' : 'Mulai moderasi aspirasi'}</h4>
+                  <p>PANDUAN ADMINISTRATOR</p>
+                  <h4 id="admin-work-guide-title">Kelola aspirasi dengan aman</h4>
                 </div>
               </div>
               <ol>
                 <li><b>Buka antrean moderasi</b><span>Periksa tiket yang masuk, mulai dari yang paling lama menunggu.</span></li>
                 <li><b>Tinjau dan tindak lanjuti</b><span>Baca detail, perbarui status, lalu kirim balasan yang jelas dan sopan.</span></li>
-                {admin?.role === 'admin' ? (
-                  <li><b>Atur visibilitas bila perlu</b><span>Gunakan mode privat untuk topik sensitif; hanya admin yang dapat mengubahnya.</span></li>
-                ) : (
-                  <li><b>Eskalasi topik sensitif</b><span>Hubungi admin jika tiket perlu dijadikan privat atau memuat informasi pribadi.</span></li>
-                )}
+                <li><b>Atur visibilitas bila perlu</b><span>Gunakan mode privat untuk topik sensitif atau tampilkan di publik setelah ditinjau.</span></li>
               </ol>
               <button type="button" onClick={() => openAspirasiList('queue')}>Buka antrean <span aria-hidden="true">→</span></button>
             </section>
@@ -729,20 +723,10 @@ export default function AdminDashboard({ initialSection = 'summary' }: AdminDash
           )}
 
           {activeAdminSection === 'users' && (
-            admin?.role === 'admin' ? (
-              <AdminUserManagement
-                currentUser={admin}
-                onUserSelfUpdated={(updated) => setAdmin(updated)}
-              />
-            ) : (
-              <FeedbackPanel
-                variant="error"
-                title="Akses Dibatasi"
-                message="Halaman pengelolaan pengurus hanya dapat diakses oleh Administrator."
-                actionLabel="Kembali ke Dashboard"
-                onAction={() => handleSectionSwitch('summary')}
-              />
-            )
+            <AdminUserManagement
+              currentUser={admin}
+              onUserSelfUpdated={(updated) => setAdmin(updated)}
+            />
           )}
 
           {(activeAdminSection === 'queue' || activeAdminSection === 'all') && <>
@@ -1207,7 +1191,7 @@ export default function AdminDashboard({ initialSection = 'summary' }: AdminDash
                         checked={Boolean(selectedAspirasi.is_publik)}
                         aria-checked={Boolean(selectedAspirasi.is_publik)}
                         onChange={handleTogglePublic}
-                        disabled={actionLoading || admin?.role !== 'admin' || Boolean(selectedAspirasi.is_privat)}
+                        disabled={actionLoading || Boolean(selectedAspirasi.is_privat)}
                       />
                       <span aria-hidden="true" />
                     </label>
@@ -1221,13 +1205,12 @@ export default function AdminDashboard({ initialSection = 'summary' }: AdminDash
                         checked={Boolean(selectedAspirasi.is_privat)}
                         aria-checked={Boolean(selectedAspirasi.is_privat)}
                         onChange={handleTogglePrivate}
-                        disabled={actionLoading || admin?.role !== 'admin'}
+                        disabled={actionLoading}
                       />
                       <span aria-hidden="true" />
                     </label>
                   </div>
                 </div>
-                {admin?.role !== 'admin' && <p className="admin-visibility-note">Hanya admin yang dapat mengubah pengaturan visibilitas.</p>}
               </section>
               <form onSubmit={handleReply} style={{ display: 'grid', gap: '8px', marginTop: '16px' }}>
                 <label htmlFor="reply-text" style={{ color: colors.ink2, fontSize: '12px' }}>Balasan untuk pengirim</label>

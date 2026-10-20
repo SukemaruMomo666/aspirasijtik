@@ -28,13 +28,16 @@ class AdminSeeder extends Seeder
                 'role' => 'admin',
             ],
             [
-                'nama' => 'Moderator JTIK',
-                'email' => 'moderator@jtik.polsub.ac.id',
-                'password' => Hash::make('moderator123'),
+                'nama' => 'Sekretaris Jurusan JTIK',
+                'email' => 'sekjur@jtik.polsub.ac.id',
+                'password' => Hash::make('sekjur123'),
                 'is_active' => true,
-                'role' => 'moderator',
+                'role' => 'admin',
             ],
         ];
+
+        // Hapus akun moderator lama jika ada
+        Admin::where('role', 'moderator')->orWhere('email', 'admin@jtik.polsub.ac.id')->delete();
 
         foreach ($admins as $admin) {
             $record = Admin::firstOrCreate(
@@ -44,14 +47,14 @@ class AdminSeeder extends Seeder
             $record->update([
                 'nama' => $admin['nama'],
                 'password' => $admin['password'],
-                'role' => $admin['role'],
+                'role' => 'admin',
                 'is_active' => $admin['is_active'],
             ]);
         }
 
         $this->command->info('✓ Admin users seeded successfully!');
-        $this->command->info('  Test credentials:');
-        $this->command->info('  Email: kajur@jtik.polsub.ac.id | Password: kajur123 (Administrator)');
-        $this->command->info('  Email: moderator@jtik.polsub.ac.id | Password: moderator123 (Moderator)');
+        $this->command->info('  Akun Pengurus / Administrator:');
+        $this->command->info('  1. Email: kajur@jtik.polsub.ac.id  | Password: kajur123  (Ketua Jurusan)');
+        $this->command->info('  2. Email: sekjur@jtik.polsub.ac.id | Password: sekjur123 (Sekretaris Jurusan)');
     }
 }
