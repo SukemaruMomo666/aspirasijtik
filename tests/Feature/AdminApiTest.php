@@ -59,7 +59,7 @@ class AdminApiTest extends TestCase
         ])->assertUnauthorized();
     }
 
-    public function test_only_admin_can_change_public_visibility(): void
+    public function test_admin_can_change_public_visibility(): void
     {
         $kategori = Kategori::create(['nama' => 'Akademik']);
         $aspirasi = Aspirasi::create([
@@ -70,24 +70,16 @@ class AdminApiTest extends TestCase
             'is_anonim' => true,
             'ip_hash' => str_repeat('a', 64),
         ]);
-        $moderator = Admin::create([
-            'nama' => 'Moderator',
-            'email' => 'moderator@example.test',
-            'password' => Hash::make('secret-password'),
-            'is_active' => true,
-            'role' => 'moderator',
-        ]);
         $admin = Admin::create([
-            'nama' => 'Admin',
+            'nama' => 'Admin Pengurus',
             'email' => 'admin@example.test',
             'password' => Hash::make('secret-password'),
             'is_active' => true,
             'role' => 'admin',
         ]);
 
-        $this->withToken($moderator->createToken('test')->plainTextToken)
-            ->patchJson("/api/admin/aspirasi/{$aspirasi->id}/publik", ['is_publik' => true])
-            ->assertForbidden();
+        $this->patchJson("/api/admin/aspirasi/{$aspirasi->id}/publik", ['is_publik' => true])
+            ->assertUnauthorized();
 
         $this->withToken($admin->createToken('test')->plainTextToken)
             ->patchJson("/api/admin/aspirasi/{$aspirasi->id}/publik", ['is_publik' => true])
@@ -95,7 +87,7 @@ class AdminApiTest extends TestCase
             ->assertJsonPath('aspirasi.is_publik', true);
     }
 
-    public function test_moderator_can_update_status_and_reply(): void
+    public function test_admin_can_update_status_and_reply(): void
     {
         $kategori = Kategori::create(['nama' => 'Fasilitas']);
         $aspirasi = Aspirasi::create([
@@ -106,23 +98,23 @@ class AdminApiTest extends TestCase
             'is_anonim' => true,
             'ip_hash' => str_repeat('b', 64),
         ]);
-        $moderator = Admin::create([
-            'nama' => 'Moderator',
-            'email' => 'moderator@example.test',
+        $admin = Admin::create([
+            'nama' => 'Staff Pengurus',
+            'email' => 'staff@example.test',
             'password' => Hash::make('secret-password'),
             'is_active' => true,
-            'role' => 'moderator',
+            'role' => 'admin',
         ]);
 
-        $this->withToken($moderator->createToken('test')->plainTextToken)
+        $this->withToken($admin->createToken('test')->plainTextToken)
             ->patchJson("/api/admin/aspirasi/{$aspirasi->id}/status", ['status' => 'Diproses'])
             ->assertOk()
             ->assertJsonPath('aspirasi.status', 'Diproses');
 
-        $this->withToken($moderator->createToken('reply-test')->plainTextToken)
+        $this->withToken($admin->createToken('reply-test')->plainTextToken)
             ->postJson("/api/admin/aspirasi/{$aspirasi->id}/balas", ['isi' => 'Sudah kami teruskan ke bagian sarana.'])
             ->assertCreated()
-            ->assertJsonPath('balasan.admin_id', $moderator->id);
+            ->assertJsonPath('balasan.admin_id', $admin->id);
     }
 
     public function test_admin_cannot_publish_private_aspiration(): void

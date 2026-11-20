@@ -35,6 +35,12 @@ return [
         ],
     ],
 
+    'recaptcha' => [
+        'site_key' => env('VITE_RECAPTCHA_SITE_KEY'),
+        'secret_key' => env('RECAPTCHA_SECRET_KEY'),
+        'verify_url' => env('RECAPTCHA_VERIFY_URL', 'https://www.google.com/recaptcha/api/siteverify'),
+    ],
+
     'turnstile' => [
         'site_key' => env('VITE_TURNSTILE_SITE_KEY'),
         'secret_key' => env('TURNSTILE_SECRET_KEY'),
